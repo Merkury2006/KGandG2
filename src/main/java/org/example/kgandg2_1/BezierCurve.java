@@ -11,8 +11,9 @@ import java.util.List;
 import java.util.Map;
 
 public class BezierCurve {
+    private static final int capacity = 100;
     private List<Point2D> points = new ArrayList<>();
-    private Map<String, Double> binomialCache = new HashMap<>(100);
+    private double[][] binomialCache = new double[capacity][];
 
     public List<Point2D> getPoints() {
         return points;
@@ -57,20 +58,30 @@ public class BezierCurve {
         }
     }
 
-
     private double calculateAdaptiveStep() {
-        if (points.size() <= 3) return 0.02;
-        if (points.size() <= 5) return 0.01;
-        if (points.size() <= 10) return 0.005;
-        return 0.002;
+        if (points.size() < 2) {
+            return 0.01;
+        }
+        double maxDistance = -1;
+        for (int i = 0; i < points.size() - 1; i ++) {
+            maxDistance = Math.max(maxDistance, points.get(i).distance(points.get(i + 1)));
+        }
+        if (maxDistance > 150) return 0.005;
+        if (maxDistance > 80) return 0.01;
+        if (maxDistance > 30) return 0.02;
+        return 0.03;
     }
 
     private double[] getBinomialCoefficients(int n) {
         double[] coefficients = new double[n + 1];
+
+        if (n < binomialCache.length && binomialCache[n] == null) {
+            binomialCache[n] = new double[n + 1];
+        }
+
         for (int k = 0; k <= n; k ++) {
-            String key = n + "," + k;
-            if (binomialCache.containsKey(key)) {
-                coefficients[k] = binomialCache.get(key);
+            if (n < binomialCache.length && binomialCache[n][k] != 0.0) {
+                coefficients[k] = binomialCache[n][k];
                 continue;
             }
 
@@ -79,7 +90,8 @@ public class BezierCurve {
                 curRes *= (double) (n - k + i) / i;
             }
 
-            binomialCache.put(n + "," + k, curRes);
+
+            if (n < binomialCache.length) binomialCache[n][k] = curRes;
             coefficients[k] = curRes;
         }
         return coefficients;
