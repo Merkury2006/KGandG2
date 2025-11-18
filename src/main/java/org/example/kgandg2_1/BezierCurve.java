@@ -5,10 +5,7 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.paint.Color;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class BezierCurve {
     private static final int capacity = 100;
@@ -32,6 +29,22 @@ public class BezierCurve {
 
         double xPrev = points.getFirst().getX();
         double yPrev = points.getFirst().getY();
+
+        /*class Interval{double from, to; public Interval(double from, double to){this.from = from; this.to = to;}}
+        Stack<Interval> tasks = new Stack<>();
+        tasks.push(new Interval(0, 1));
+
+        while (!tasks.empty()) {
+            Interval task = tasks.pop();
+            if (distance(task) > 5) {
+                stepX = (task.to - task.from) / N
+                for (int i = 0; i < N; i++) {
+                    tasks.push(new Interval(task.from + i*stepX, task.from + (i+1)*stepX));
+                }
+                continue;
+            }
+            draw(task);
+        }*/
 
         for (double t = 0; t <= 1.0; t += step) {
             double xCur = 0;
