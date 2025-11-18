@@ -5,9 +5,38 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.paint.Color;
 
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 public class BezierCurve {
+    class BezierInterval {
+        private final double tFrom, tTo;
+        private final Point2D start, end;
+
+        public BezierInterval(double tFrom, double tTo, Point2D start, Point2D end) {
+            this.tFrom = tFrom;
+            this.tTo = tTo;
+            this.start = start;
+            this.end = end;
+        }
+
+        public double gettFrom() {
+            return tFrom;
+        }
+
+        public double gettTo() {
+            return tTo;
+        }
+
+        public Point2D getStart() {
+            return start;
+        }
+
+        public Point2D getEnd() {
+            return end;
+        }
+    }
     private static final int capacity = 100;
     private List<Point2D> points = new ArrayList<>();
     private double[][] binomialCache = new double[capacity][];
@@ -24,65 +53,40 @@ public class BezierCurve {
         if (points.size() < 2) return;
 
         int n = points.size() - 1;
-        double step = calculateAdaptiveStep();
         double[] coefficients = getBinomialCoefficients(n);
 
-        double xPrev = points.getFirst().getX();
-        double yPrev = points.getFirst().getY();
-
-        /*class Interval{double from, to; public Interval(double from, double to){this.from = from; this.to = to;}}
-        Stack<Interval> tasks = new Stack<>();
-        tasks.push(new Interval(0, 1));
+        Stack<BezierInterval> tasks = new Stack<>();
+        tasks.push(new BezierInterval(0, 1, getBezierPoint(0, coefficients), getBezierPoint(1, coefficients)));
 
         while (!tasks.empty()) {
-            Interval task = tasks.pop();
-            if (distance(task) > 5) {
-                stepX = (task.to - task.from) / N
-                for (int i = 0; i < N; i++) {
-                    tasks.push(new Interval(task.from + i*stepX, task.from + (i+1)*stepX));
-                }
-                continue;
+            BezierInterval task = tasks.pop();
+
+            if (task.getStart().distance(task.getEnd()) > 5) {
+                double tMid = (task.gettTo() + task.gettFrom()) / 2;
+
+                Point2D midPoint = getBezierPoint(tMid, coefficients);
+
+                tasks.push(new BezierInterval(task.gettFrom(), tMid, task.getStart(), midPoint));
+                tasks.push(new BezierInterval(tMid, task.gettTo(), midPoint, task.getEnd()));
             }
-            draw(task);
-        }*/
-
-        for (double t = 0; t <= 1.0; t += step) {
-            double xCur = 0;
-            double yCur = 0;
-
-            double powT = 1.0;
-            double pow1_T = Math.pow(1.0 - t, n);
-
-            for (int k = 0; k <= n; k ++) {
-                double basicFunction = coefficients[k] * powT * pow1_T;
-                xCur += points.get(k).getX() * basicFunction;
-                yCur += points.get(k).getY() * basicFunction;
-
-                if (t < 1.0) {
-                    pow1_T /= (1.0 - t);
-                }
-                powT *= t;
+            else {
+                DrawUtils.drawLine(task.getStart(), task.getEnd(), pixelWriter, widthCanvas, heightCanvas, color);
             }
-
-            DrawUtils.drawLine((int) Math.round(xPrev),(int) Math.round(yPrev), (int) Math.round(xCur), (int) Math.round(yCur), pixelWriter, widthCanvas, heightCanvas, color);
-
-            xPrev = xCur;
-            yPrev = yCur;
         }
     }
 
-    private double calculateAdaptiveStep() {
-        if (points.size() < 2) {
-            return 0.01;
+    private Point2D getBezierPoint(double t, double[] coefficients) {
+        int n = points.size() - 1;
+        double x = 0;
+        double y = 0;
+
+        for (int k = 0; k <= n; k ++) {
+            double basicFunction = coefficients[k] * Math.pow(1 - t, n - k) * Math.pow(t, k);
+            x += points.get(k).getX() * basicFunction;
+            y += points.get(k).getY() * basicFunction;
         }
-        double maxDistance = -1;
-        for (int i = 0; i < points.size() - 1; i ++) {
-            maxDistance = Math.max(maxDistance, points.get(i).distance(points.get(i + 1)));
-        }
-        if (maxDistance > 150) return 0.005;
-        if (maxDistance > 80) return 0.01;
-        if (maxDistance > 30) return 0.02;
-        return 0.03;
+
+        return new Point2D(x, y);
     }
 
     private double[] getBinomialCoefficients(int n) {
